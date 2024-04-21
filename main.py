@@ -97,6 +97,5 @@ class simplexTable:
             print(line)
             j += 1
 
-
 p1 = simplexTable(problema1)
 p1.verTabla()
