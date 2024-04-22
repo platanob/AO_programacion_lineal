@@ -1,38 +1,45 @@
 import numpy as np
+
 matriz = []
 problema1 = {
     "funcionObjetivo": {"requerimiento": 'Minimizar', "coeficientes": [2, 2]},
     "restricciones": [
         {"coeficientes": [2, 1], "operador": '<=', "valor": 100},
         {"coeficientes": [1, 3], "operador": '<=', "valor": 80},
-        {"coeficientes": [1, 0], "operador": '>=', "valor": 45},
-        {"coeficientes": [0, 1], "operador": '>=', "valor": 100},
+        {"coeficientes": [1, 0], "operador": '<=', "valor": 45},
+        {"coeficientes": [0, 1], "operador": '<=', "valor": 100},
     ],
 }
 
 
 class simplexTable:
     def __init__(self, problema) -> None:
+        self.matriz = np.array 
         self.restricciones = problema["restricciones"]
-        self.coeficientesZ = problema["funcionObjetivo"]["coeficientes"]
-        self.numVariables = len(self.coeficientesZ)
-        self.vBasicas = ["Z"]
+        self.funcionObjetivo = problema["funcionObjetivo"]
+        self.columnas = ["Z"]
+        self.variableBasicas = ["Z"]
+        self.mayorIgual = []
+        self.menorIgual = []
+        
+        self._solve()
 
-        self.goe: list = []  # Greater or equal
-        self.loe: list = []  # Less or equal
+    def _solve(self):
         for restriccion in self.restricciones:
-            if (restriccion["operador"] == "<="):
-                self.loe.append(restriccion)
-            if (restriccion["operador"] == ">="):
-                self.goe.append(restriccion)
+            if(restriccion["operador"] == "<="):
+                self.menorIgual.append(restriccion)
+            else:
+                self.mayorIgual.append(restriccion)
 
-        columnas: int = 2 + self.numVariables + len(self.loe) + len(self.goe)*2
-        filas = len(self.restricciones)+1
-        self.tabla = np.zeros((filas, columnas))
-        self.head = self.makehead()
+        nFilas = len(self.restricciones) + 1
+        nColumnas = (2 + len(self.funcionObjetivo["coeficientes"]) + len(self.menorIgual) 
+                    + len(self.mayorIgual) * 2)
+        
+        self.matriz = np.zeros((nFilas,nColumnas))
 
-        if (problema["funcionObjetivo"]["requerimiento"] == "Minimizar"):
-            z: int = -1
+
+        if len(self.mayorIgual) == 0:
+            self._normal()
         else:
             self._dosFases()
 
@@ -92,10 +99,6 @@ class simplexTable:
             #-------------------------------------------                
             self.verTabla()
             
-
-            
-        
-    
     def _normal(self):
         print("normal method")
         #-----------------------------------------
@@ -105,8 +108,6 @@ class simplexTable:
             self.matriz[0][i+1] = coeficiente * -1
             self.columnas.append( "x" + str(i+1))
         self._tabMenorIgual()
-
-
         #----------------------------------------
         #------------Resolución------------------
         #----------------------------------------
@@ -146,7 +147,7 @@ class simplexTable:
         fila = 0
         for f in range(1,self.matriz.shape[0]):
             if(self.matriz[f][columna] > 0):
-                tmp = self.matriz[f][-1] / self.matriz[f][columna]
+                tmp = self.matriz[f,-1] / self.matriz[f,columna]
                 if(tmp < mini):
                     mini = tmp
                     fila = f
@@ -163,20 +164,16 @@ class simplexTable:
                 self.matriz[x][y] =  self.matriz[x][y] - self.matriz[fila][y] * pivot 
 
     def verTabla(self):
-        h1: str = ""
+        head = ""
+        for h in self.columnas:
+            head += "\t" + h
+        print(head)
 
-        for h in self.head:
-            h1 += h + "\t"
-        print(h1)
-
-        j = 0
-        for x in self.tabla:
-            line: str = self.vBasicas[j] + "\t"
-            for y in x:
-                line += str(y) + "\t"
+        for x in range(self.matriz.shape[0]):
+            line = self.variableBasicas[x] + "\t"
+            for y in range(self.matriz.shape[1]):
+                line += str(round(self.matriz[x][y],3)) + "\t"
             print(line)
-            j += 1
 
 
 p1 = simplexTable(problema1)
-p1.verTabla()
