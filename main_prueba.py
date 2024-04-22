@@ -1,25 +1,39 @@
 import numpy as np
 import re
 
+def parser(problema):
+    restricciones = []
+    regex = r"(-?\d+)x\s*\+?\s*(-?\d+)y\s*(<=|>=|=)\s*(-?\d+)"
+    matches = re.finditer(regex, problema)
+    for match in matches:
+        coeficienteX = int(match.group(1))
+        coeficienteY = int(match.group(2))
+        operador = match.group(3)
+        valor = int(match.group(4))
+        restricciones.append({"coeficientes": [coeficienteX, coeficienteY], "operador": operador, "valor": valor})
+    return restricciones
+
 class simplexTable:
-    def __init__(self, funcionObjetivo, restricciones) -> None:
+    def __init__(self, restricciones, funcionObjetivo) -> None:
+        self.restricciones = restricciones
         self.coeficientesZ = funcionObjetivo["coeficientes"]
         self.numVariables = len(self.coeficientesZ)
         self.vBasicas = ["Z"]
-        self.restricciones = []
 
         self.goe: list = []  # Greater or equal
         self.loe: list = []  # Less or equal
+        for restriccion in self.restricciones:
+            if restriccion["operador"] == "<=":
+                self.loe.append(restriccion)
+            elif restriccion["operador"] == ">=":
+                self.goe.append(restriccion)
 
-        for restriccion in restricciones: 
-            self.agregar_restriccion(restriccion)
-
-        columnas: int = 2 + self.numVariables + len(self.loe) + len(self.goe) * 2
-        filas = len(self.restricciones) + 1
+        columnas: int = 2 + self.numVariables + len(self.loe) + len(self.goe)*2
+        filas = len(self.restricciones)+1
         self.tabla = np.zeros((filas, columnas))
         self.head = self.makehead()
 
-        if (funcionObjetivo["requerimiento"] == "Minimizar"):
+        if funcionObjetivo["requerimiento"] == "Minimizar":
             z: int = -1
         else:
             z: int = 1
@@ -30,7 +44,7 @@ class simplexTable:
             len(self.loe) + 1  # indice primera artificial
         i: int = 0
         while i < len(self.goe):  # Inicialización de artificiales
-            self.tabla[0][index_a + 2 * i] = 1
+            self.tabla[0][index_a+2*i] = 1
             i += 1
 
         j: int = 1
@@ -48,34 +62,12 @@ class simplexTable:
 
         l: int = j
         for index, restriccion in enumerate(self.loe):
-            self.vBasicas.append("h" + str(l - j + 1))
+            self.vBasicas.append("h" + str(l-j+1))
             for _, coef in enumerate(restriccion["coeficientes"]):
                 self.tabla[l][_+1] = coef
             self.tabla[l][index + self.numVariables + 1] = 1
             self.tabla[l][len(self.tabla[l])-1] = restriccion["valor"]
             l += 1
-
-    def agregar_restriccion(self, constraint_string):
-        # expresión regular para buscar un patron en la cadena de restriccion.
-        match = re.match(r'([0-9,]+)\s*(<=|>=)\s*(\d+)', constraint_string)
-        if not match:
-            raise ValueError("Formato de restricción no válido:", constraint_string)
-        
-        # Extrae los coeficientes, el operador y el valor de la restricción del objeto de coincidencia.
-        coeficientes_str = match.group(1)
-        operador = match.group(2)
-        valor_str = match.group(3)
-        
-        coeficientes = [int(x) for x in coeficientes_str.split(",")]
-        valor = int(valor_str)
-        
-        if operador =='<=':
-            self.loe.append({"coeficientes": coeficientes, "valor": valor})
-        elif operador == '>=':
-            self.goe.append({"coeficientes": coeficientes, "valor": valor})
-
-        self.restricciones.append({"coeficientes": coeficientes, "operador": operador, "valor": valor})
-
 
     def makehead(self) -> str:
         head = ["VB", "Z"]
@@ -101,14 +93,14 @@ class simplexTable:
 
         j = 0
         for x in self.tabla:
-            line = self.vBasicas[j] + "\t"
+            line: str = self.vBasicas[j] + "\t"
             for y in x:
                 line += str(y) + "\t"
             print(line)
             j += 1
 
-# Ejemplo de uso
-funcionObjetivo = {"requerimiento": 'Minimizar', "coeficientes": [2, 2]}
-restricciones = ["2,1 <= 100", "1,3 <= 80", "1,0 >= 45", "0,1 >= 100"]
-p1 = simplexTable(funcionObjetivo, restricciones)
+problema = "Z = 2x + 2y\nsujeto a\n2x + 1y <= 100\n1x + 3y <= 80\n1x + 0y >= 45\n0x + 1y >= 100"
+restricciones = parser(problema)
+funcionObjetivo = {"requerimiento": "Minimizar", "coeficientes": [2, 2]}
+p1 = simplexTable(restricciones, funcionObjetivo)
 p1.verTabla()
