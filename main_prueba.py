@@ -99,8 +99,29 @@ class simplexTable:
             print(line)
             j += 1
 
-problema = "Z = 2x + 2y\nsujeto a\n2x + 1y <= 100\n1x + 3y <= 80\n1x + 0y >= 45\n0x + 1y >= 100"
+    def pivotear(self):
+        coe_resul = []
+        index_ld = len(self.tabla[1])-1
+        index_c_piv = (np.argmin(self.tabla[0,1:len(self.tabla)])) + 1
+        for x in range(1,len(self.tabla)):
+            coe_resul.append(self.tabla[x][index_ld]  / self.tabla[x][index_c_piv] )
+        num_coe = np.array([coe_resul])
+        index_f_piv = (np.argmin)
+        print(coe_resul)
+
+
+
+    def dosfaces(self):
+        for x in range(1,len(self.tabla)):
+            for y in range(1,len(self.tabla[x])):
+                self.tabla[0][y] += (self.tabla[x][y] * -1 ) 
+        
+
+
+problema = "Z = 0.12x + 0.15y\nsujeto a\n60x + 60y >= 300\n12x + 6y >= 36\n10x + 30y >= 90"
 restricciones = parser(problema)
 funcionObjetivo = {"requerimiento": "Minimizar", "coeficientes": [2, 2]}
 p1 = simplexTable(restricciones, funcionObjetivo)
+p1.dosfaces()
 p1.verTabla()
+p1.pivotear()
