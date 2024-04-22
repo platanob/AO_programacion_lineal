@@ -80,7 +80,6 @@ class simplexTable:
             #-----------------------------------------
             #------------Armado de Tabla--------------
             #-----------------------------------------
-
             # agregar columnas de variables de decisión 
             for i,coeficiente in enumerate(self.funcionObjetivo["coeficientes"]) :
                 self.columnas.append( "x" + str(i+1))
@@ -95,18 +94,17 @@ class simplexTable:
 
             self._tabMayorIgual()
             self._tabMenorIgual()
-
             #-------------------------------------------
             #-------------Resolución--------------------
             #-------------------------------------------                
             self.verTabla()
-            self._normalizarBasicas()
-            self.verTabla()
+            
 
             
         
     
     def _normal(self):
+        print("normal method")
         #-----------------------------------------
         #------------Armado de Tabla--------------
         #-----------------------------------------
@@ -114,17 +112,16 @@ class simplexTable:
             self.matriz[0][i+1] = coeficiente * -1
             self.columnas.append( "x" + str(i+1))
         self._tabMenorIgual()
-        
+
+
         #----------------------------------------
         #------------Resolución------------------
         #----------------------------------------
-
-        if(self.funcionObjetivo["requerimiento"] == "Minimizar"):
-            pass
-        
         while True:
+            self.verTabla()
             columna = self._columnaPivote()
             if(columna == 0):
+                print("end")
                 break
             fila = self._filaPivote(columna)
             self._normalzarFila(fila,columna)
@@ -133,14 +130,13 @@ class simplexTable:
             self.variableBasicas[fila] = self.columnas[columna]
             self.verTabla()
 
-    def _normalizarBasicas(self):
+    def _eliminacionGaussiana(self):
         for i,vb in enumerate(self.variableBasicas):
             columna = self.columnas.index(vb)
             for  x in range(self.matriz.shape[0]) :
-                if self.matriz[x][columna] == 1 and x != i:
-                    print(self.matriz[x] )
-                    print(self.matriz[i] )
-                    self.matriz[x] -= self.matriz[i]
+                if self.matriz[x][columna] != 0 and x != i:
+                    self.matriz[x] -= self.matriz[i] 
+
     def _columnaPivote(self) -> int:
         mini = 0
         columna = 0
