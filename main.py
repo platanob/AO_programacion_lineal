@@ -7,7 +7,7 @@ problema1 = {
         {"coeficientes": [2, 1], "operador": '<=', "valor": 100},
         {"coeficientes": [1, 3], "operador": '<=', "valor": 80},
         {"coeficientes": [1, 0], "operador": '<=', "valor": 45},
-        {"coeficientes": [0, 1], "operador": '<=', "valor": 100},
+        {"coeficientes": [0, 1], "operador": '>=', "valor": 100},
     ],
 }
 
@@ -22,9 +22,9 @@ class simplexTable:
         self.mayorIgual = []
         self.menorIgual = []
         
-        self._crearTabla()
+        self._solve()
 
-    def _crearTabla(self):
+    def _solve(self):
         for restriccion in self.restricciones:
             if(restriccion["operador"] == "<="):
                 self.menorIgual.append(restriccion)
@@ -37,66 +37,95 @@ class simplexTable:
         
         self.matriz = np.zeros((nFilas,nColumnas))
 
-        #---------------------------------------------------------------
-        #--------------------------Armar Tabla--------------------------
-        #---------------------------------------------------------------
-
-
-        # Función objetivo
-        for i,coeficiente in enumerate(self.funcionObjetivo["coeficientes"]) :
-            self.matriz[0][i+1] = coeficiente * -1
-            self.columnas.append( "x" + str(i+1))
-
-        # Restricciones 
-        for i,restriccion in enumerate(self.menorIgual):
-            nR = i+1 # numero restriccion
-            for j,coeficiente in enumerate(restriccion["coeficientes"]) :
-                self.matriz[nR][j+1] = coeficiente
-            
-            self.matriz[nR][ len(self.funcionObjetivo["coeficientes"]) + nR]  = 1
-            self.variableBasicas.append("h" + str(nR))
-            self.columnas.append("h" + str(nR))
-            self.matriz[nR][-1] = restriccion["valor"]
 
         if len(self.mayorIgual) == 0:
             self._normal()
         else:
             self._dosFases()
 
+    #------------------------------------------------
+    # Funciones para armado de tabla
+    #------------------------------------------------
+    def _tabMayorIgual(self):
+        aC= len(self.columnas)  #Indice columna a1
+        if "a1" in self.columnas:
+            aC = self.columnas.index("a1")
+
+        aF = len(self.variableBasicas) # indice fila a1
+        for i,restriccion in enumerate(self.mayorIgual):
+            self.variableBasicas.append("a" + str(i+1) )
+
+            for j,coeficiente in enumerate(restriccion["coeficientes"]):
+                self.matriz[aF][j+1] = coeficiente
+                
+            self.matriz[aF][aC + 2*i] = 1
+            self.matriz[aF][-1] = restriccion["valor"]
+            aF += 1
+
+    def _tabMenorIgual(self):
+        aC = len(self.columnas) #indice columna
+        aF = len(self.variableBasicas) # indice fila  
+        for i,restriccion in enumerate(self.menorIgual):
+            nR = aF + i 
+            for j,coeficiente in enumerate(restriccion["coeficientes"]) :
+                self.matriz[nR][j+1] = coeficiente
+            
+            self.matriz[nR][ aC +i ]  = 1
+            self.variableBasicas.append("h" + str(i+1))
+            self.columnas.append("h" + str(i+1))
+            self.matriz[nR][-1] = restriccion["valor"]
+
 
     def _dosFases(self):
-            
-            #Inicializar artificiales
-            aC= 2+len(self.funcionObjetivo["variables"]) + len(self.loe)   # indice columna artificial
-            count = 1 # numero restriccion
-            while aC  < self.matriz.shape[0]-1:  
-                self.columnas.append("e" + str(count))
-                self.columnas.append("a" + str(count))
-                self.matriz[0][aC] = 1        # Inicialización de artificiales
-                aC += 2
+            #-----------------------------------------
+            #------------Armado de Tabla--------------
+            #-----------------------------------------
+
+            # agregar columnas de variables de decisión 
+            for i,coeficiente in enumerate(self.funcionObjetivo["coeficientes"]) :
+                self.columnas.append( "x" + str(i+1))
+
+            aC= len(self.columnas) + 1   # indice columna artificial
+            count = 0 # numero restriccion
+            while count  < len(self.mayorIgual):  
+                self.columnas.append("e" + str(count+1))
+                self.columnas.append("a" + str(count+1))
+                self.matriz[0][aC + 2*count] = 1        # Inicialización de artificiales
                 count += 1  
 
-            #Inicializar restricciones >=
-            aF = 1+ len(self.menorIgual) # indice fila artificial
-            for i,restriccion in enumerate(self.mayorIgual):
-                nR = i+1 # Numero de restriccion
-                for j,coeficiente in enumerate(restriccion["coeficientes"]):
-                    pass
+            self._tabMayorIgual()
+            self._tabMenorIgual()
 
+            #-------------------------------------------
+            #-------------Resolución--------------------
+            #-------------------------------------------                
+            self.verTabla()
+            self._normalizarBasicas()
+            self.verTabla()
 
             
         
     
     def _normal(self):
+        #-----------------------------------------
+        #------------Armado de Tabla--------------
+        #-----------------------------------------
+        for i,coeficiente in enumerate(self.funcionObjetivo["coeficientes"]) :
+            self.matriz[0][i+1] = coeficiente * -1
+            self.columnas.append( "x" + str(i+1))
+        self._tabMenorIgual()
+        
         #----------------------------------------
         #------------Resolución------------------
         #----------------------------------------
 
+        if(self.funcionObjetivo["requerimiento"] == "Minimizar"):
+            pass
+        
         while True:
             columna = self._columnaPivote()
             if(columna == 0):
                 break
-
             fila = self._filaPivote(columna)
             self._normalzarFila(fila,columna)
             self._pivotear(fila,columna)
@@ -104,6 +133,14 @@ class simplexTable:
             self.variableBasicas[fila] = self.columnas[columna]
             self.verTabla()
 
+    def _normalizarBasicas(self):
+        for i,vb in enumerate(self.variableBasicas):
+            columna = self.columnas.index(vb)
+            for  x in range(self.matriz.shape[0]) :
+                if self.matriz[x][columna] == 1 and x != i:
+                    print(self.matriz[x] )
+                    print(self.matriz[i] )
+                    self.matriz[x] -= self.matriz[i]
     def _columnaPivote(self) -> int:
         mini = 0
         columna = 0
@@ -127,7 +164,7 @@ class simplexTable:
         return fila
     
     def _normalzarFila(self,fila,columna):    
-        for x in range(self.matriz.shape[0]):
+        for x in range(self.matriz.shape[1]):
             self.matriz[fila][x] /= self.matriz[fila][columna]
 
     def _pivotear(self,fila,columna):
@@ -150,4 +187,4 @@ class simplexTable:
 
 
 p1 = simplexTable(problema1)
-p1.verTabla()
+
