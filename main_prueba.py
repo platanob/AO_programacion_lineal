@@ -2,12 +2,13 @@ import numpy as np
 
 matriz = []
 problema1 = {
-    "funcionObjetivo": {"requerimiento": 'Minimizar', "coeficientes": [0.12, 0.15]},
+    "funcionObjetivo": {"requerimiento": 'Maximizar', "coeficientes": [1.50, 2.75]},
     "restricciones": [
-        {"coeficientes": [60, 60], "operador": '>=', "valor": 300},
-        {"coeficientes": [12, 6], "operador": '>=', "valor": 36},
-        {"coeficientes": [10, 30], "operador": '>=', "valor": 90},
-        
+        {"coeficientes": [0.6, 1], "operador": '<=', "valor": 200},
+        {"coeficientes": [1,1], "operador": '<=', "valor": 700},  
+        {"coeficientes": [1,0], "operador": '>=', "valor": 200},  
+         
+
     ],
 }
 
@@ -47,18 +48,20 @@ class simplexTable:
     # Funciones para armado de tabla
     #------------------------------------------------
     def _tabMayorIgual(self):
-        aC= len(self.columnas)  #Indice columna a1
+        aC = len(self.columnas)  # Indice columna a1
         if "a1" in self.columnas:
             aC = self.columnas.index("a1")
 
-        aF = len(self.variableBasicas) # indice fila a1
-        for i,restriccion in enumerate(self.mayorIgual):
-            self.variableBasicas.append("a" + str(i+1) )
+        aF = len(self.variableBasicas)  # indice fila a1
+        for i, restriccion in enumerate(self.mayorIgual):
+            self.variableBasicas.append("a" + str(i+1))
 
-            for j,coeficiente in enumerate(restriccion["coeficientes"]):
+            for j, coeficiente in enumerate(restriccion["coeficientes"]):
                 self.matriz[aF][j+1] = coeficiente
-                
+
             self.matriz[aF][aC + 2*i] = 1
+            self.matriz[aF][aC + 2*i -1] = -1
+
             self.matriz[aF][-1] = restriccion["valor"]
             aF += 1
 
@@ -100,13 +103,28 @@ class simplexTable:
 
             #-------------------------------------------
             #------------- Fase 1 ----------------------
-            #-------------------------------------------               
+            #------------------------------------------- 
+            print("""            #-------------------------------------------
+            #------------- Fase 1 ----------------------
+            #------------------------------------------- 
+""")          
             self.verTabla()
             self._eliminacionGaussiana()
             self.verTabla()
-            c_pi = self._columnaPivote()
-            f_pi = self._filaPivote(c_pi)
-            print(f_pi,c_pi)
+            self._nonegativofuncion()
+            #-------------------------------------------
+            #------------- Fase 2 ----------------------
+            #------------------------------------------- 
+            print("""            #-------------------------------------------
+            #------------- Fase 2 ----------------------
+            #------------------------------------------- 
+""")
+            self._trablafase2()
+            self.verTabla()
+            self._eliminacionGaussiana()
+            self.verTabla()
+            self._nonegativofuncion()
+
 
     def _normal(self):
         print("normal method")
@@ -130,6 +148,36 @@ class simplexTable:
             self._pivotear(fila,columna)
 
             self.variableBasicas[fila] = self.columnas[columna]
+            self.verTabla()
+
+    def imp_resultado(self):
+        pass
+
+    def _trablafase2(self):
+        #ingreso de los valores a la tabla de la funcion objetivo 
+        a = 1
+        for i  in  self.funcionObjetivo['coeficientes']:
+            if self.funcionObjetivo['requerimiento'] == 'Minimizar' :
+                self.matriz[0][a] = i
+            else :
+                self.matriz[0][a] = -i
+            a+=1
+        #buscar indice de las variables artificiales
+        indice_fila_a = [indice for indice, valor in enumerate(self.columnas) if valor.startswith('a')]
+        #Eliminar variables aritifciales
+        b = 0 
+        for columna_a_eliminar in indice_fila_a:
+            columna_a_eliminar -= b
+            self.matriz = np.hstack((self.matriz[:, :columna_a_eliminar], self.matriz[:, columna_a_eliminar + 1:]))
+            b += 1
+        self.columnas = [valor for valor in self.columnas if not valor.startswith('a')]
+    def _nonegativofuncion(self):
+        while min(self.matriz[0][1:len(self.matriz[0])-1])< 0 :
+            c_pi = self._columnaPivote()
+            f_pi = self._filaPivote(c_pi)
+            self._normalzarFila(f_pi,c_pi)
+            self._pivotear(f_pi,c_pi)
+            self.variableBasicas[f_pi] = self.columnas[c_pi]
             self.verTabla()
 
     def _eliminacionGaussiana(self):
@@ -162,14 +210,15 @@ class simplexTable:
         return fila
     
     def _normalzarFila(self,fila,columna):    
+        guardar_numero = self.matriz[fila][columna]
         for x in range(self.matriz.shape[1]):
-            self.matriz[fila][x] /= self.matriz[fila][columna]
+            self.matriz[fila][x] /= guardar_numero
 
     def _pivotear(self,fila,columna):
         for x in [_ for _ in range(self.matriz.shape[0]) if _ != fila]:
             pivot = self.matriz[x][columna]
             for y in range(self.matriz.shape[1]):
-                self.matriz[x][y] =  self.matriz[x][y] - self.matriz[fila][y] * pivot 
+                self.matriz[x][y] = round(self.matriz[x][y] - self.matriz[fila][y] * pivot, 10)
 
     def verTabla(self):
         head = ""
