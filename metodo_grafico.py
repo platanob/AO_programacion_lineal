@@ -37,21 +37,27 @@ def intersection(eq1, eq2):
 
     return {'x': new_matriz[0][2], 'y': new_matriz[1][2]}
 
-def parse_problem(problem):
+def parser(problema):
     restricciones = []
-    regex = re.compile(r'(-?\d+)x\+?(-?\d+)y(<=|>=|=)(-?\d+)')
-    arrCoef = problem.replace(' ', '').split('\n')[2:]
+    # Expresión regular para extraer las restricciones
+    regex_restricciones = r"(-?\d+)x\s*\+?\s*(-?\d+)y\s*(<=|>=|=)\s*(-?\d+)" # busca Coef x e y, operador, valor
+    matches = re.finditer(regex_restricciones, problema) 
+    for match in matches:
+        coeficienteX = int(match.group(1))
+        coeficienteY = int(match.group(2))
+        operador = match.group(3)
+        valor = int(match.group(4))
+        restricciones.append({'coeficienteX': coeficienteX, 'coeficienteY': coeficienteY, 'operador': operador, 'valor': valor})
 
-    for inec in arrCoef:
-        match = regex.match(inec)
-        if match:
-            coeficienteX = int(match.group(1))
-            coeficienteY = int(match.group(2))
-            operador = match.group(3)
-            valor = int(match.group(4))
-            restricciones.append({'coeficienteX': coeficienteX, 'coeficienteY': coeficienteY, 'operador': operador, 'valor': valor})
-
-    return restricciones
+    # Expresion regular para extraer la funcion objetivo
+    regex_objetivo = r"([Mm]inimizar|[Mm]aximizar)\s*Z\s*=\s*(-?\d*\.?\d*)x\s*\+\s*(-?\d*\.?\d*)y"
+    match_objetivo = re.search(regex_objetivo, problema) # Buscar coincidencias en la exp regular y el problema
+    requerimiento = match_objetivo.group(1)  # Capitalizar el requerimiento
+    coeficienteX = float(match_objetivo.group(2))
+    coeficienteY = float(match_objetivo.group(3))
+    funcionObjetivo = {'requerimiento': requerimiento, 'coeficientes': [coeficienteX, coeficienteY]}
+    
+    return funcionObjetivo, restricciones
 
 def validate_point(restricciones, x, y):
     it = 0
@@ -64,7 +70,7 @@ def validate_point(restricciones, x, y):
 def graphic_method(pr):
     puntos_facts = []
     puntos_evaluados = []
-    objetivo, restricciones = parse_problem(pr)
+    objetivo, restricciones = parser(pr)
 
     for i in range(len(restricciones)):
         for j in range(i + 1, len(restricciones)):
@@ -97,4 +103,11 @@ def graphic_method(pr):
         'puntosRegionFactible': puntos_evaluados
     }
         
-        
+problema = "Maximizar Z = 2x + 2y\nsujeto a\n2x + 1y <= 100\n1x + 3y <= 80\n1x + 0y<= 45\n0x + 1y<= 100"
+
+objetivo, restricciones = parser(problema)
+
+print("Función Objetivo:", objetivo)
+print("Restricciones:")
+for r in restricciones:
+    print(r)
