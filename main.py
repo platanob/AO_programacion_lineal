@@ -1,5 +1,5 @@
 import numpy as np
-import math 
+
 matriz = []
 problema1 = {
     "funcionObjetivo": {"requerimiento": 'Minimizar', "coeficientes": [2, 2]},
@@ -7,7 +7,7 @@ problema1 = {
         {"coeficientes": [2, 1], "operador": '<=', "valor": 100},
         {"coeficientes": [1, 3], "operador": '<=', "valor": 80},
         {"coeficientes": [1, 0], "operador": '<=', "valor": 45},
-        {"coeficientes": [0, 1], "operador": '>=', "valor": 100},
+        {"coeficientes": [0, 1], "operador": '<=', "valor": 100},
     ],
 }
 
@@ -99,10 +99,6 @@ class simplexTable:
             #-------------------------------------------                
             self.verTabla()
             
-
-            
-        
-    
     def _normal(self):
         print("normal method")
         #-----------------------------------------
@@ -112,8 +108,6 @@ class simplexTable:
             self.matriz[0][i+1] = coeficiente * -1
             self.columnas.append( "x" + str(i+1))
         self._tabMenorIgual()
-
-
         #----------------------------------------
         #------------Resolución------------------
         #----------------------------------------
@@ -153,7 +147,7 @@ class simplexTable:
         fila = 0
         for f in range(1,self.matriz.shape[0]):
             if(self.matriz[f][columna] > 0):
-                tmp = self.matriz[f][-1] / self.matriz[f][columna]
+                tmp = self.matriz[f,-1] / self.matriz[f,columna]
                 if(tmp < mini):
                     mini = tmp
                     fila = f
