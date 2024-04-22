@@ -1,14 +1,7 @@
-import re
+# Suponiendo que tienes una lista llamada 'lista'
+lista = ['Z', 'x1', 'x2', 'e1', 'a1', 'e2', 'a2', 'e3', 'a3']
 
+# Usamos la función filter() para filtrar los elementos que no contienen 'A'
+nueva_lista = list(filter(lambda x: 'A' not in x, lista))
 
-def parser_expresion(expresion):
-    # Utilizamos expresiones regulares para dividir la expresión en componentes
-    tokens = re.findall(r'\d+|\+|\-|\*|\/|<=|>=|==|!=|\(|\)', expresion)
-
-    return tokens
-
-
-def leer():
-    n_exp = input("Dime el numero de expreciones")
-    for i in range(n_exp):
-        pass
+print("Lista sin las entradas que contienen 'A':", nueva_lista)

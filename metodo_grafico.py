@@ -97,4 +97,3 @@ def graphic_method(pr):
         'puntosRegionFactible': puntos_evaluados
     }
         
-        

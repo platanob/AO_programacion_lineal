@@ -7,35 +7,36 @@ problema1 = {
         {"coeficientes": [2, 1], "operador": '<=', "valor": 100},
         {"coeficientes": [1, 3], "operador": '<=', "valor": 80},
         {"coeficientes": [1, 0], "operador": '<=', "valor": 45},
-        {"coeficientes": [0, 1], "operador": '>=', "valor": 100},
+        {"coeficientes": [0, 1], "operador": '<=', "valor": 100},
     ],
 }
 
 
 class simplexTable:
     def __init__(self, problema) -> None:
-        self.matriz = np.array
+        self.matriz = np.array 
         self.restricciones = problema["restricciones"]
         self.funcionObjetivo = problema["funcionObjetivo"]
         self.columnas = ["Z"]
         self.variableBasicas = ["Z"]
         self.mayorIgual = []
         self.menorIgual = []
-
+        
         self._solve()
 
     def _solve(self):
         for restriccion in self.restricciones:
-            if (restriccion["operador"] == "<="):
+            if(restriccion["operador"] == "<="):
                 self.menorIgual.append(restriccion)
             else:
                 self.mayorIgual.append(restriccion)
 
         nFilas = len(self.restricciones) + 1
-        nColumnas = (2 + len(self.funcionObjetivo["coeficientes"]) + len(self.menorIgual)
-                     + len(self.mayorIgual) * 2)
+        nColumnas = (2 + len(self.funcionObjetivo["coeficientes"]) + len(self.menorIgual) 
+                    + len(self.mayorIgual) * 2)
+        
+        self.matriz = np.zeros((nFilas,nColumnas))
 
-        self.matriz = np.zeros((nFilas, nColumnas))
 
         if len(self.mayorIgual) == 0:
             self._normal()
@@ -93,13 +94,13 @@ class simplexTable:
             self.matriz[0][aC + 2*count] = 1
             count += 1
 
-        self._tabMayorIgual()
-        self._tabMenorIgual()
-        # -------------------------------------------
-        # -------------Resolución--------------------
-        # -------------------------------------------
-        self.verTabla()
-
+            self._tabMayorIgual()
+            self._tabMenorIgual()
+            #-------------------------------------------
+            #-------------Resolución--------------------
+            #-------------------------------------------                
+            self.verTabla()
+            
     def _normal(self):
         print("normal method")
         # -----------------------------------------
@@ -109,9 +110,9 @@ class simplexTable:
             self.matriz[0][i+1] = coeficiente * -1
             self.columnas.append("x" + str(i+1))
         self._tabMenorIgual()
-        # ----------------------------------------
-        # ------------Resolución------------------
-        # ----------------------------------------
+        #----------------------------------------
+        #------------Resolución------------------
+        #----------------------------------------
         while True:
             
             columna = self._columnaPivote()
@@ -147,10 +148,10 @@ class simplexTable:
     def _filaPivote(self, columna) -> int:
         mini = np.Infinity
         fila = 0
-        for f in range(1, self.matriz.shape[0]):
-            if (self.matriz[f][columna] > 0):
-                tmp = self.matriz[f, -1] / self.matriz[f, columna]
-                if (tmp < mini):
+        for f in range(1,self.matriz.shape[0]):
+            if(self.matriz[f][columna] > 0):
+                tmp = self.matriz[f,-1] / self.matriz[f,columna]
+                if(tmp < mini):
                     mini = tmp
                     fila = f
         return fila
@@ -174,7 +175,7 @@ class simplexTable:
         for x in range(self.matriz.shape[0]):
             line = self.variableBasicas[x] + "\t"
             for y in range(self.matriz.shape[1]):
-                line += str(round(self.matriz[x][y], 3)) + "\t"
+                line += str(round(self.matriz[x][y],3)) + "\t"
             print(line)
 
 
