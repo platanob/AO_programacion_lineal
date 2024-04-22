@@ -148,5 +148,6 @@ class simplexTable:
                 line += str(round(self.matriz[x][y],3)) + "\t"
             print(line)
 
+
 p1 = simplexTable(problema1)
 p1.verTabla()
