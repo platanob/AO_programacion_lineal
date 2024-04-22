@@ -1,45 +1,38 @@
 import numpy as np
-
 matriz = []
 problema1 = {
     "funcionObjetivo": {"requerimiento": 'Minimizar', "coeficientes": [2, 2]},
     "restricciones": [
         {"coeficientes": [2, 1], "operador": '<=', "valor": 100},
         {"coeficientes": [1, 3], "operador": '<=', "valor": 80},
-        {"coeficientes": [1, 0], "operador": '<=', "valor": 45},
-        {"coeficientes": [0, 1], "operador": '<=', "valor": 100},
+        {"coeficientes": [1, 0], "operador": '>=', "valor": 45},
+        {"coeficientes": [0, 1], "operador": '>=', "valor": 100},
     ],
 }
 
 
 class simplexTable:
     def __init__(self, problema) -> None:
-        self.matriz = np.array 
         self.restricciones = problema["restricciones"]
-        self.funcionObjetivo = problema["funcionObjetivo"]
-        self.columnas = ["Z"]
-        self.variableBasicas = ["Z"]
-        self.mayorIgual = []
-        self.menorIgual = []
-        
-        self._solve()
+        self.coeficientesZ = problema["funcionObjetivo"]["coeficientes"]
+        self.numVariables = len(self.coeficientesZ)
+        self.vBasicas = ["Z"]
 
-    def _solve(self):
+        self.goe: list = []  # Greater or equal
+        self.loe: list = []  # Less or equal
         for restriccion in self.restricciones:
-            if(restriccion["operador"] == "<="):
-                self.menorIgual.append(restriccion)
-            else:
-                self.mayorIgual.append(restriccion)
+            if (restriccion["operador"] == "<="):
+                self.loe.append(restriccion)
+            if (restriccion["operador"] == ">="):
+                self.goe.append(restriccion)
 
-        nFilas = len(self.restricciones) + 1
-        nColumnas = (2 + len(self.funcionObjetivo["coeficientes"]) + len(self.menorIgual) 
-                    + len(self.mayorIgual) * 2)
-        
-        self.matriz = np.zeros((nFilas,nColumnas))
+        columnas: int = 2 + self.numVariables + len(self.loe) + len(self.goe)*2
+        filas = len(self.restricciones)+1
+        self.tabla = np.zeros((filas, columnas))
+        self.head = self.makehead()
 
-
-        if len(self.mayorIgual) == 0:
-            self._normal()
+        if (problema["funcionObjetivo"]["requerimiento"] == "Minimizar"):
+            z: int = -1
         else:
             self._dosFases()
 
@@ -164,17 +157,20 @@ class simplexTable:
                 self.matriz[x][y] =  self.matriz[x][y] - self.matriz[fila][y] * pivot 
 
     def verTabla(self):
-        head = ""
-        for h in self.columnas:
-            head += "\t" + h
-        print(head)
+        h1: str = ""
 
-        for x in range(self.matriz.shape[0]):
-            line = self.variableBasicas[x] + "\t"
-            for y in range(self.matriz.shape[1]):
-                line += str(round(self.matriz[x][y],3)) + "\t"
+        for h in self.head:
+            h1 += h + "\t"
+        print(h1)
+
+        j = 0
+        for x in self.tabla:
+            line: str = self.vBasicas[j] + "\t"
+            for y in x:
+                line += str(y) + "\t"
             print(line)
+            j += 1
 
 
 p1 = simplexTable(problema1)
-
+p1.verTabla()
