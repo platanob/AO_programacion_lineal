@@ -8,6 +8,7 @@ def parser(problema):
     restricciones = []
     # Expresión regular para extraer las restricciones
     regex_restricciones = r"(-?\d+)x\s*\+?\s*(-?\d+)y\s*(<=|>=|=)\s*(-?\d+)"  # busca Coef x e y, operador, valor
+
     matches = re.finditer(regex_restricciones, problema)
     for match in matches:
         coeficienteX = int(match.group(1))
@@ -39,12 +40,7 @@ def esValido(eq,x,y):
     if eq['operador'] == "=":
         return res == eq['valor']
     
-def obtenerCeros(eq):
-    return {
-        'x': [eq['valor'] / eq['coeficienteX'], 0],
-        'y': [0, eq['valor'] / eq['coeficienteY']]
-    }
-    
+
 def determinante2x2(matriz):
     return (matriz[0][0] * matriz[1][1]) - (matriz[0][1] * matriz[1][0])
 
@@ -131,7 +127,7 @@ def metodo_grafico(pr):
         'intersecciones': intersecciones
     } 
 
-solucion = metodo_grafico("Maximizar Z = 2x + 2y\nsujeto a\n2x+1y<=100\n1x+3y<=80\n1x+0y<=45\n0x+1y<=100\n1x+0y>=0\n0x+1y>=0")
+solucion = metodo_grafico("Minimizar Z = 2x + 2y\nsujeto a\n2x+1y<=100\n1x+3y<=80\n1x+0y<=45\n0x+1y<=100\n1x+0y>=0\n0x+1y>=0")
 
 def calcular_distancia(punto1, punto2):
     x1, y1 = punto1
@@ -158,7 +154,6 @@ def graficar_restricciones(restricciones, intersecciones, funcionObjetivo, punto
             x = np.ones(400) * (restriccion['valor'] / restriccion['coeficienteX'])
         plt.plot(x, y, label=f"{restriccion['coeficienteX']}x + {restriccion['coeficienteY']}y {restriccion['operador']} {restriccion['valor']}")
      
-    x = np.linspace(0, 100, 400)
     
     # Encontrar la región factible y llenarla
     regionFactible = []
@@ -166,6 +161,7 @@ def graficar_restricciones(restricciones, intersecciones, funcionObjetivo, punto
         texto = "\tx:" + str(round(p["x"],2)) + "\ty:" + str(round(p["y"],2)) + "\tz:" + str(round(evaluar(funcionObjetivo,p["x"],p["y"]),2))
         plt.annotate(texto, (p["x"], p["y"]), textcoords="offset points", xytext=(0,10), ha='center', bbox=dict(boxstyle="round,pad=0.3", fc="yellow", ec="black", lw=1))
         regionFactible.append((p['x'],p['y']))
+        
     regionFactible = ordenar_por_cercania(regionFactible)
     
     poly = Polygon(regionFactible, closed=True, color='gray', alpha=0.5)
@@ -183,12 +179,13 @@ def graficar_restricciones(restricciones, intersecciones, funcionObjetivo, punto
     plt.legend()
     plt.show()
 
-fo = solucion['funcionObjetivo']
+solucion['funcionObjetivo']
 
-if fo['requerimiento'] == 'Maximizar':
-    fo['valor'] = solucion["maximo"]["value"]
+if solucion['funcionObjetivo']['requerimiento'] == 'Maximizar':
+    solucion['funcionObjetivo']["valor"] = solucion["maximo"]["value"]
 else:
-    fo['valor'] = solucion["minimo"]["value"]
+    solucion['funcionObjetivo']["valor"] = solucion["minimo"]["value"]
     
-fo['operador'] = '='
+solucion['funcionObjetivo']['operador'] = '='
+
 graficar_restricciones(solucion['restricciones'],solucion['intersecciones'],solucion['funcionObjetivo'],solucion['puntosRegionFactible'])

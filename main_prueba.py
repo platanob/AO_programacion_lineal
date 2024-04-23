@@ -4,8 +4,8 @@ matriz = []
 problema1 = {
     "funcionObjetivo": {"requerimiento": 'Minimizar', "coeficientes": [0.12, 0.15]},
     "restricciones": [
-        {"coeficientes": [60, 60], "operador": '<=', "valor": 300},
-        {"coeficientes": [12,6], "operador": '>=', "valor": 36},  
+        {"coeficientes": [60, 60], "operador": '>=', "valor": 300},
+        {"coeficientes": [12,6], "operador": '<=', "valor": 36},  
         {"coeficientes": [10,30], "operador": '>=', "valor": 90},  
     ],
 }
@@ -17,6 +17,7 @@ class simplexTable:
         self.restricciones = problema["restricciones"]
         self.funcionObjetivo = problema["funcionObjetivo"]
         self.columnas = ["Z"]
+        
         self.variableBasicas = ["Z"]
         self.mayorIgual = []
         self.menorIgual = []
@@ -40,6 +41,7 @@ class simplexTable:
         if (self.funcionObjetivo["requerimiento"] == "Minimizar"):
             z = -1
         self.matriz[0][0] = z
+
         if len(self.mayorIgual) == 0:
             self._normal()
         else:
@@ -80,98 +82,7 @@ class simplexTable:
             self.columnas.append("h" + str(i+1))
             self.matriz[nR][-1] = restriccion["valor"]
 
-
-    def _dosFases(self):
-            #-----------------------------------------
-            #------------Armado de Tabla--------------
-            #-----------------------------------------
-            # agregar columnas de variables de decisión 
-            for i,coeficiente in enumerate(self.funcionObjetivo["coeficientes"]) :
-                self.columnas.append( "x" + str(i+1))
-
-            aC= len(self.columnas) + 1   # indice columna artificial
-            count = 0 # numero restriccion
-            while count  < len(self.mayorIgual):  
-                self.columnas.append("e" + str(count+1))
-                self.columnas.append("a" + str(count+1))
-                self.matriz[0][aC + 2*count] = 1        # Inicialización de artificiales
-                count += 1  
-            self._tabMayorIgual()
-            self._tabMenorIgual()
-
-
-            print("""           
-            #-------------------------------------------
-            #------------- Fase 1 ----------------------
-            #------------------------------------------- 
-""")          
-            self.verTabla()
-            self._eliminacionGaussiana()
-            self.verTabla()
-            self._nonegativofuncion()
-
-            print("""            
-            #-------------------------------------------
-            #------------- Fase 2 ----------------------
-            #------------------------------------------- 
-""")
-            self._trablafase2()
-            self.verTabla()
-            self._eliminacionGaussiana()
-            self.verTabla()
-            self._nonegativofuncion()
-
-
-    def _normal(self):
-        print("normal method")
-        #-----------------------------------------
-        #------------Armado de Tabla--------------
-        #-----------------------------------------
-        for i,coeficiente in enumerate(self.funcionObjetivo["coeficientes"]) :
-            self.matriz[0][i+1] = coeficiente * -1
-            self.columnas.append( "x" + str(i+1))
-        self._tabMenorIgual()
-        self.verTabla()
-        if self.funcionObjetivo["requerimiento"] == "Maximizar":
-            self._nonegativofuncion()
-        #----------------------------------------
-        #------------Resolución------------------
-        #----------------------------------------
-        
-
-    def imp_resultado(self):
-        respuesta = ""
-        indices_holguras = [(indice,valor) for indice, valor in enumerate(self.columnas) 
-                          if (valor.startswith('e') or valor.startswith("h"))]
-
-        for i,x in enumerate(self.funcionObjetivo["coeficientes"]):
-            varName ="x" + str(i+1) 
-            if  varName in self.variableBasicas:
-                respuesta += varName + ": " + str(self.matriz[self.variableBasicas.index(varName)][-1]) + "\n"
-            else:
-                respuesta += varName + ": 0\n"
-        if(self.funcionObjetivo["requerimiento"] == "Maximizar"):
-            respuesta += "Z: " + str(self.matriz[0][-1])+ "\n"
-        else:
-            respuesta += "Z: " + str(self.matriz[0][-1] * -1)+ "\n"
     
-
-        mas_rentable = ("No hay",0)
-        for h in indices_holguras:
-            if(self.matriz[0][h[0]] > mas_rentable[1]):
-                mas_rentable = (h[1],self.matriz[0][h[0]])
-
-        respuesta += "Holgura más rentable:" + mas_rentable[0] + ", precio sombra:" + str(mas_rentable[1])
-        print(respuesta)
-        
-
-        
-            
-
-
-    
-        pass
-
     def _trablafase2(self):
         #ingreso de los valores a la tabla de la funcion objetivo 
         a = 1
@@ -181,6 +92,7 @@ class simplexTable:
             else :
                 self.matriz[0][a] = -i
             a+=1
+
         #buscar indice de las variables artificiales
         indice_columna_a = [indice for indice, valor in enumerate(self.columnas) if valor.startswith('a')]
         #Eliminar variables aritifciales
@@ -191,14 +103,11 @@ class simplexTable:
             b += 1
         self.columnas = [valor for valor in self.columnas if not valor.startswith('a')]
 
-    def _nonegativofuncion(self):
-        while min(self.matriz[0][1:len(self.matriz[0])-1])< 0 :
-            c_pi = self._columnaPivote()
-            f_pi = self._filaPivote(c_pi)
-            self._normalzarFila(f_pi,c_pi)
-            self._pivotear(f_pi,c_pi)
-            self.variableBasicas[f_pi] = self.columnas[c_pi]
-            self.verTabla()
+#-----------------------------------------------------------------
+#---------------Funciones de manejo de tabla----------------------
+#-----------------------------------------------------------------
+
+
 
     def _eliminacionGaussiana(self):
         for i,vb in enumerate(self.variableBasicas):
@@ -239,7 +148,100 @@ class simplexTable:
             pivot = self.matriz[x][columna]
             for y in range(self.matriz.shape[1]):
                 self.matriz[x][y] = round(self.matriz[x][y] - self.matriz[fila][y] * pivot, 10)
+    
+    def _nonegativofuncion(self):
+        while min(self.matriz[0][1:len(self.matriz[0])-1])< 0 :
+            c_pi = self._columnaPivote()
+            f_pi = self._filaPivote(c_pi)
+            self._normalzarFila(f_pi,c_pi)
+            self._pivotear(f_pi,c_pi)
+            self.variableBasicas[f_pi] = self.columnas[c_pi]
+            self.verTabla()
+    
+    def _dosFases(self):
+            #-----------------------------------------
+            #------------Armado de Tabla--------------
+            #-----------------------------------------
+            # agregar columnas de variables de decisión 
+            for i,coeficiente in enumerate(self.funcionObjetivo["coeficientes"]) :
+                self.columnas.append( "x" + str(i+1))
 
+            aC= len(self.columnas) + 1   # indice columna artificial
+            count = 0 # numero restriccion
+            while count  < len(self.mayorIgual):  
+                self.columnas.append("e" + str(count+1))
+                self.columnas.append("a" + str(count+1))
+                self.matriz[0][aC + 2*count] = 1        # Inicialización de artificiales
+                count += 1  
+
+            self._tabMayorIgual()
+            self._tabMenorIgual()
+
+
+            print("""           
+            #-------------------------------------------
+            #------------- Fase 1 ----------------------
+            #------------------------------------------- 
+            """)          
+            self.verTabla()
+            self._eliminacionGaussiana()
+            self.verTabla()
+            self._nonegativofuncion()
+
+            print("""            
+            #-------------------------------------------
+            #------------- Fase 2 ----------------------
+            #------------------------------------------- 
+            """)
+            self._trablafase2()
+            self.verTabla()
+            self._eliminacionGaussiana()
+            self.verTabla()
+            self._nonegativofuncion()
+
+
+    def _normal(self):
+        print("normal method")
+        #-----------------------------------------
+        #------------Armado de Tabla--------------
+        #-----------------------------------------
+        for i,coeficiente in enumerate(self.funcionObjetivo["coeficientes"]) :
+            self.matriz[0][i+1] = coeficiente * -1
+            self.columnas.append( "x" + str(i+1))
+
+        self._tabMenorIgual()
+        self.verTabla()
+
+        if self.funcionObjetivo["requerimiento"] == "Maximizar":
+            self._nonegativofuncion()
+        
+
+    def imp_resultado(self):
+        respuesta = ""
+        indices_holguras = [(indice,valor) for indice, valor in enumerate(self.columnas) 
+                          if (valor.startswith('e') or valor.startswith("h"))]
+
+        for i,x in enumerate(self.funcionObjetivo["coeficientes"]):
+            varName ="x" + str(i+1) 
+            if  varName in self.variableBasicas:
+                respuesta += varName + ": " + str(self.matriz[self.variableBasicas.index(varName)][-1]) + "\n"
+            else:
+                respuesta += varName + ": 0\n"
+
+        if(self.funcionObjetivo["requerimiento"] == "Maximizar"):
+            respuesta += "Z: " + str(self.matriz[0][-1])+ "\n"
+        else:
+            respuesta += "Z: " + str(self.matriz[0][-1] * -1)+ "\n"
+    
+
+        mas_rentable = ("No hay",0)
+        for h in indices_holguras:
+            if(self.matriz[0][h[0]] > mas_rentable[1]):
+                mas_rentable = (h[1],self.matriz[0][h[0]])
+
+        respuesta += "Holgura más rentable:" + mas_rentable[0] + ", precio sombra:" + str(mas_rentable[1])
+        print(respuesta)
+        
     def verTabla(self):
         head = ""
         for h in self.columnas:
