@@ -2,7 +2,7 @@ import numpy as np
 
 matriz = []
 problema1 = {
-    "funcionObjetivo": {"requerimiento": 'Maximizar', "coeficientes": [0.12, 0.15]},
+    "funcionObjetivo": {"requerimiento": 'Minimizar', "coeficientes": [0.12, 0.15]},
     "restricciones": [
         {"coeficientes": [60, 60], "operador": '<=', "valor": 300},
         {"coeficientes": [12,6], "operador": '>=', "valor": 36},  
@@ -36,7 +36,10 @@ class simplexTable:
         
         self.matriz = np.zeros((nFilas,nColumnas))
 
-
+        z = 1
+        if (self.funcionObjetivo["requerimiento"] == "Minimizar"):
+            z = -1
+        self.matriz[0][0] = z
         if len(self.mayorIgual) == 0:
             self._normal()
         else:
