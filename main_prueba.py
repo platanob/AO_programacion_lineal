@@ -2,13 +2,11 @@ import numpy as np
 
 matriz = []
 problema1 = {
-    "funcionObjetivo": {"requerimiento": 'Maximizar', "coeficientes": [1.50, 2.75]},
+    "funcionObjetivo": {"requerimiento": 'Maximizar', "coeficientes": [0.12, 0.15]},
     "restricciones": [
-        {"coeficientes": [0.6, 1], "operador": '<=', "valor": 200},
-        {"coeficientes": [1,1], "operador": '<=', "valor": 700},  
-        {"coeficientes": [1,0], "operador": '>=', "valor": 200},  
-         
-
+        {"coeficientes": [60, 60], "operador": '<=', "valor": 300},
+        {"coeficientes": [12,6], "operador": '>=', "valor": 36},  
+        {"coeficientes": [10,30], "operador": '>=', "valor": 90},  
     ],
 }
 
@@ -43,6 +41,7 @@ class simplexTable:
             self._normal()
         else:
             self._dosFases()
+        self.imp_resultado()
 
     #------------------------------------------------
     # Funciones para armado de tabla
@@ -96,15 +95,10 @@ class simplexTable:
                 count += 1  
             self._tabMayorIgual()
             self._tabMenorIgual()
-            #-------------------------------------------
-            #-------------Resolución--------------------
-            #-------------------------------------------    
 
 
+            print("""           
             #-------------------------------------------
-            #------------- Fase 1 ----------------------
-            #------------------------------------------- 
-            print("""            #-------------------------------------------
             #------------- Fase 1 ----------------------
             #------------------------------------------- 
 """)          
@@ -112,10 +106,9 @@ class simplexTable:
             self._eliminacionGaussiana()
             self.verTabla()
             self._nonegativofuncion()
+
+            print("""            
             #-------------------------------------------
-            #------------- Fase 2 ----------------------
-            #------------------------------------------- 
-            print("""            #-------------------------------------------
             #------------- Fase 2 ----------------------
             #------------------------------------------- 
 """)
@@ -135,22 +128,45 @@ class simplexTable:
             self.matriz[0][i+1] = coeficiente * -1
             self.columnas.append( "x" + str(i+1))
         self._tabMenorIgual()
+        self.verTabla()
+        if self.funcionObjetivo["requerimiento"] == "Maximizar":
+            self._nonegativofuncion()
         #----------------------------------------
         #------------Resolución------------------
         #----------------------------------------
-        while True:
-            self.verTabla()
-            columna = self._columnaPivote()
-            if(columna == 0):
-                print("end")
-                break
-            fila = self._filaPivote(columna)
-            self._pivotear(fila,columna)
-
-            self.variableBasicas[fila] = self.columnas[columna]
-            self.verTabla()
+        
 
     def imp_resultado(self):
+        respuesta = ""
+        indices_holguras = [(indice,valor) for indice, valor in enumerate(self.columnas) 
+                          if (valor.startswith('e') or valor.startswith("h"))]
+
+        for i,x in enumerate(self.funcionObjetivo["coeficientes"]):
+            varName ="x" + str(i+1) 
+            if  varName in self.variableBasicas:
+                respuesta += varName + ": " + str(self.matriz[self.variableBasicas.index(varName)][-1]) + "\n"
+            else:
+                respuesta += varName + ": 0\n"
+        if(self.funcionObjetivo["requerimiento"] == "Maximizar"):
+            respuesta += "Z: " + str(self.matriz[0][-1])+ "\n"
+        else:
+            respuesta += "Z: " + str(self.matriz[0][-1] * -1)+ "\n"
+    
+
+        mas_rentable = ("No hay",0)
+        for h in indices_holguras:
+            if(self.matriz[0][h[0]] > mas_rentable[1]):
+                mas_rentable = (h[1],self.matriz[0][h[0]])
+
+        respuesta += "Holgura más rentable:" + mas_rentable[0] + ", precio sombra:" + str(mas_rentable[1])
+        print(respuesta)
+        
+
+        
+            
+
+
+    
         pass
 
     def _trablafase2(self):
@@ -163,14 +179,15 @@ class simplexTable:
                 self.matriz[0][a] = -i
             a+=1
         #buscar indice de las variables artificiales
-        indice_fila_a = [indice for indice, valor in enumerate(self.columnas) if valor.startswith('a')]
+        indice_columna_a = [indice for indice, valor in enumerate(self.columnas) if valor.startswith('a')]
         #Eliminar variables aritifciales
         b = 0 
-        for columna_a_eliminar in indice_fila_a:
+        for columna_a_eliminar in indice_columna_a:
             columna_a_eliminar -= b
             self.matriz = np.hstack((self.matriz[:, :columna_a_eliminar], self.matriz[:, columna_a_eliminar + 1:]))
             b += 1
         self.columnas = [valor for valor in self.columnas if not valor.startswith('a')]
+
     def _nonegativofuncion(self):
         while min(self.matriz[0][1:len(self.matriz[0])-1])< 0 :
             c_pi = self._columnaPivote()
@@ -229,7 +246,7 @@ class simplexTable:
         for x in range(self.matriz.shape[0]):
             line = self.variableBasicas[x] + "\t"
             for y in range(self.matriz.shape[1]):
-                line += str(round(self.matriz[x][y],3)) + "\t"
+                line += str(round(self.matriz[x][y],4)) + "\t"
             print(line)
 
 
