@@ -192,4 +192,3 @@ else:
     
 fo['operador'] = '='
 graficar_restricciones(solucion['restricciones'],solucion['intersecciones'],solucion['funcionObjetivo'],solucion['puntosRegionFactible'])
-
