@@ -1,8 +1,35 @@
 import re
 import matplotlib.pyplot as plt
 import numpy as np
+from matplotlib.patches import Polygon
+import math
 
-def is_valid(eq, x, y):
+def parser(problema):
+    restricciones = []
+    # Expresión regular para extraer las restricciones
+    regex_restricciones = r"(-?\d+)x\s*\+?\s*(-?\d+)y\s*(<=|>=|=)\s*(-?\d+)"  # busca Coef x e y, operador, valor
+    matches = re.finditer(regex_restricciones, problema)
+    for match in matches:
+        coeficienteX = int(match.group(1))
+        coeficienteY = int(match.group(2))
+        operador = match.group(3)
+        valor = int(match.group(4))
+        restricciones.append({"coeficienteX": coeficienteX, "coeficienteY": coeficienteY, "operador": operador, "valor": valor})
+
+    # Expresion regular para extraer la funcion objetivo
+    regex_objetivo = r"([Mm]inimizar|[Mm]aximizar)\s*Z\s*=\s*(-?\d*\.?\d*)x\s*\+\s*(-?\d*\.?\d*)y"
+    match_objetivo = re.search(regex_objetivo, problema)  # Buscar coincidencias en la exp regular y el problema
+    if match_objetivo:
+        requerimiento = match_objetivo.group(1)
+        coeficienteX = float(match_objetivo.group(2))
+        coeficienteY = float(match_objetivo.group(3))
+        funcionObjetivo = {"requerimiento": requerimiento, "coeficienteX":coeficienteX,"coeficienteY":coeficienteY}
+    else:
+        raise ValueError("No se encontró ninguna coincidencia para la función objetivo")
+
+    return restricciones, funcionObjetivo
+
+def esValido(eq,x,y):
     res = x * eq['coeficienteX'] + y * eq['coeficienteY']
 
     if eq['operador'] == "<=":
@@ -11,89 +38,157 @@ def is_valid(eq, x, y):
         return res >= eq['valor']
     if eq['operador'] == "=":
         return res == eq['valor']
-
-def get_zeros(eq):
+    
+def obtenerCeros(eq):
     return {
-        'x': eq['valor'] / eq['coeficienteX'],
-        'y': eq['valor'] / eq['coeficienteY']
+        'x': [eq['valor'] / eq['coeficienteX'], 0],
+        'y': [0, eq['valor'] / eq['coeficienteY']]
     }
+    
+def determinante2x2(matriz):
+    return (matriz[0][0] * matriz[1][1]) - (matriz[0][1] * matriz[1][0])
 
-def intersection(eq1, eq2):
-    matriz = [[eq1['coeficienteX'], eq1['coeficienteY'], eq1['valor']],
-              [eq2['coeficienteX'], eq2['coeficienteY'], eq2['valor']]]
+def crammer(eq1, eq2):
+    m = [
+        [eq1['coeficienteX'], eq1['coeficienteY'], eq1['valor']],
+        [eq2['coeficienteX'], eq2['coeficienteY'], eq2['valor']]
+    ]
 
-    new_matriz = [[0, 0, 0], [0, 0, 0]]
+    mx = [
+        [eq1['valor'], eq1['coeficienteY']],
+        [eq2['valor'], eq2['coeficienteY']],
+    ]
 
-    for i in range(3):
-        new_matriz[0][i] = matriz[0][i] + (matriz[0][1] / matriz[1][1] * -1) * matriz[1][i]
-        new_matriz[1][i] = matriz[1][i] + (matriz[1][0] / matriz[0][0] * -1) * matriz[0][i]
+    my = [
+        [eq1['coeficienteX'], eq1['valor']],
+        [eq2['coeficienteX'], eq2['valor']]
+    ]
 
-    div1 = new_matriz[0][0]
-    div2 = new_matriz[1][1]
+    det = determinante2x2(m)
 
-    for s in range(3):
-        new_matriz[0][s] = new_matriz[0][s] / div1
-        new_matriz[1][s] = new_matriz[1][s] / div2
+    if det == 0:
+        return {'x': float('NaN'), 'y': float('NaN')}
 
-    return {'x': new_matriz[0][2], 'y': new_matriz[1][2]}
+    detX = determinante2x2(mx)
+    detY = determinante2x2(my)
 
-def parse_problem(problem):
-    restricciones = []
-    regex = re.compile(r'(-?\d+)x\+?(-?\d+)y(<=|>=|=)(-?\d+)')
-    arrCoef = problem.replace(' ', '').split('\n')[2:]
-
-    for inec in arrCoef:
-        match = regex.match(inec)
-        if match:
-            coeficienteX = int(match.group(1))
-            coeficienteY = int(match.group(2))
-            operador = match.group(3)
-            valor = int(match.group(4))
-            restricciones.append({'coeficienteX': coeficienteX, 'coeficienteY': coeficienteY, 'operador': operador, 'valor': valor})
-
-    return restricciones
-
-def validate_point(restricciones, x, y):
+    return {
+        'x': detX / det,
+        'y': detY / det
+    }
+    
+def validar_puntos(restricciones, x, y):
+    response = True
     it = 0
-    while it < len(restricciones):
-        if not is_valid(restricciones[it], x, y):
-            return False
-        it += 1
-    return True
 
-def graphic_method(pr):
+    while it < len(restricciones) and response:
+        if not esValido(restricciones[it], x, y):
+            response = False
+        it += 1
+
+    return response
+
+def evaluar(eq, x, y):
+
+    return x * eq['coeficienteX'] + y * eq['coeficienteY']
+
+def metodo_grafico(pr):
     puntos_facts = []
     puntos_evaluados = []
-    objetivo, restricciones = parse_problem(pr)
-
+    intersecciones = []
+    
+    restricciones, objetivo = parser(pr)
+    
     for i in range(len(restricciones)):
         for j in range(i + 1, len(restricciones)):
-            x, y = intersection(restricciones[i], restricciones[j])
-            if validate_point(restricciones, x, y):
+            p = crammer(restricciones[i], restricciones[j])
+            x = p['x']
+            y = p['y']
+            validated = validar_puntos(restricciones, x, y)
+            if validated:
                 puntos_facts.append({'x': x, 'y': y})
-
-    mini = {'x': 0, 'y': 0, 'valor': float('inf')}
-    maxi = {'x': 0, 'y': 0, 'valor': float('-inf')}
-    for punto in puntos_facts:
-        if objetivo == 'max':
-            evalue = max(punto['x'], punto['y'])
-        elif objetivo == 'min':
-            evalue = min(punto['x'], punto['y'])
-        else:
-            raise ValueError("La función objetivo debe ser 'max' o 'min'")
+            intersecciones.append({'x': x, 'y': y})
             
+                
+    mini = {'x': 0, 'y': 0, 'value': float('inf')}
+    maxi = {'x': 0, 'y': 0, 'value': float('-inf')} 
+             
+    for punto in puntos_facts:
+        x, y = punto['x'], punto['y']
+        evalue = evaluar(objetivo, x, y)
         if evalue < mini['value']:
-            mini = {'x': punto['x'], 'y': punto['y'], 'value': evalue}
+            mini = {'x': x, 'y': y, 'value': evalue}
         if evalue > maxi['value']:
-            maxi = {'x': punto['x'], 'y': punto['y'], 'value': evalue}
-
-        puntos_evaluados.append({'x': punto['x'], 'y': punto['y'], 'value': evalue})
-        
+            maxi = {'x': x, 'y': y, 'value': evalue}
+        puntos_evaluados.append({'x': x, 'y': y, 'value': evalue})
+    
     return {
         'funcionObjetivo': objetivo,
         'restricciones': restricciones,
         'maximo': maxi,
         'minimo': mini,
-        'puntosRegionFactible': puntos_evaluados
-    }
-        
+        'puntosRegionFactible': puntos_evaluados,
+        'intersecciones': intersecciones
+    } 
+
+solucion = metodo_grafico("Maximizar Z = 2x + 2y\nsujeto a\n2x+1y<=100\n1x+3y<=80\n1x+0y<=45\n0x+1y<=100\n1x+0y>=0\n0x+1y>=0")
+
+def calcular_distancia(punto1, punto2):
+    x1, y1 = punto1
+    x2, y2 = punto2
+    distancia = math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+    return distancia
+
+def ordenar_por_cercania(lista_puntos):
+    referencia = lista_puntos[0]
+    lista_ordenada = sorted(lista_puntos, key=lambda punto: calcular_distancia(referencia, punto))
+    return lista_ordenada
+
+def graficar_restricciones(restricciones, intersecciones, funcionObjetivo, puntosRegionFactible):
+    
+    restricciones2 = restricciones
+    restricciones2.append(funcionObjetivo)
+    
+    for restriccion in restricciones2:
+        x = np.linspace(0, 100, 400)
+        if restriccion['coeficienteY'] != 0:
+            y = (restriccion['valor'] - restriccion['coeficienteX'] * x) / restriccion['coeficienteY']
+        else:
+            y = x
+            x = np.ones(400) * (restriccion['valor'] / restriccion['coeficienteX'])
+        plt.plot(x, y, label=f"{restriccion['coeficienteX']}x + {restriccion['coeficienteY']}y {restriccion['operador']} {restriccion['valor']}")
+     
+    x = np.linspace(0, 100, 400)
+    
+    # Encontrar la región factible y llenarla
+    regionFactible = []
+    for p in puntosRegionFactible:
+        texto = "\tx:" + str(round(p["x"],2)) + "\ty:" + str(round(p["y"],2)) + "\tz:" + str(round(evaluar(funcionObjetivo,p["x"],p["y"]),2))
+        plt.annotate(texto, (p["x"], p["y"]), textcoords="offset points", xytext=(0,10), ha='center', bbox=dict(boxstyle="round,pad=0.3", fc="yellow", ec="black", lw=1))
+        regionFactible.append((p['x'],p['y']))
+    regionFactible = ordenar_por_cercania(regionFactible)
+    
+    poly = Polygon(regionFactible, closed=True, color='gray', alpha=0.5)
+    plt.gca().add_patch(poly)
+
+    # Graficar puntos de intersección
+    for interseccion in intersecciones:
+        plt.plot(interseccion['x'], interseccion['y'], 'ro')
+
+    plt.xlabel('x')
+    plt.ylabel('y')
+    plt.title('Problema de programación lineal')
+    plt.xlim(0, 100)
+    plt.ylim(0, 100)
+    plt.legend()
+    plt.show()
+
+fo = solucion['funcionObjetivo']
+
+if fo['requerimiento'] == 'Maximizar':
+    fo['valor'] = solucion["maximo"]["value"]
+else:
+    fo['valor'] = solucion["minimo"]["value"]
+    
+fo['operador'] = '='
+graficar_restricciones(solucion['restricciones'],solucion['intersecciones'],solucion['funcionObjetivo'],solucion['puntosRegionFactible'])
